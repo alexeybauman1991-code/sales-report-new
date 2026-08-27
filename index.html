@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>Система отчетов по продажам</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; background: #f4f6f9; color: #333; }
+    .box { max-width: 750px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: auto; }
+    h2 { margin-top: 0; color: #222; }
+    input, select, button { padding: 10px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    input[type="text"], input[type="password"] { width: 100%; }
+    button { background: #1a73e8; color: white; border: none; cursor: pointer; font-weight: bold; }
+    button:hover { background: #1557b0; }
+    .error { color: #ea4335; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
+    .hidden { display: none !important; }
+    
+    /* Шапка */
+    .header-layout { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+    .header-text { flex: 1; }
+    .shop-title { font-weight: bold; color: #1a73e8; font-size: 16px; margin-bottom: 5px; }
+    .date-title { color: #555; font-size: 14px; margin-bottom: 5px; }
+    .user-title { font-weight: bold; color: #333; font-size: 15px; margin-bottom: 8px; }
+    
+    /* Выбор ретушера */
+    .retoucher-block { margin-top: 5px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    .retoucher-block select { padding: 6px 10px; margin: 0; min-width: 220px; font-size: 14px; }
+    
+    .btn-submit-top { background: #34a853; font-size: 15px; padding: 12px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); margin: 0; }
+    .btn-submit-top:hover { background: #2d8e47; }
+    .btn-submit-top:disabled { background: #ccc; cursor: not-allowed; }
+    
+    /* Кнопки-плюсики квадратные белые с жирным черным плюсом */
+    .action-link-container { display: flex; align-items: center; gap: 12px; margin: 15px 0; font-size: 16px; font-weight: bold; color: #333; }
+    .btn-plus-square { width: 34px; height: 34px; border: 2px solid #333; background: white; color: black; font-family: Arial, sans-serif; font-size: 20px; font-weight: 900; line-height: 1; cursor: pointer; display: flex; justify-content: center; align-items: center; padding: 0; margin: 0; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: background 0.2s, color 0.2s; }
+    .btn-plus-square:hover { background: #333; color: white; }
+    .btn-plus-square:disabled { border-color: #ccc; color: #ccc; background: #fafafa; cursor: not-allowed; }
+    
+    /* Расходники */
+    .materials-section { margin: 20px 0; border: 1px solid #ddd; border-radius: 6px; background: #fcfcfc; }
+    .materials-header { padding: 12px; font-weight: bold; cursor: pointer; background: #f0f0f0; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; }
+    .materials-body { padding: 15px; border-top: 1px solid #ddd; }
+    .material-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .material-row select { flex: 3; }
+    .material-row input { flex: 1; max-width: 120px; margin: 0; }
+    
+    /* Продажи */
+    .sales-section-title { font-size: 18px; font-weight: bold; margin-top: 25px; margin-bottom: 10px; color: #1a73e8; }
+    .sale-block { border: 1px solid #b4d2ff; background: #f4f8ff; padding: 15px; margin-bottom: 20px; border-radius: 6px; }
+    .sale-block-header { font-weight: bold; font-size: 15px; color: #1557b0; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    
+    .item-row { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+    .item-row select { flex: 3; }
+    .item-row input { flex: 1; max-width: 120px; margin: 0; }
+    
+    .btn-remove { background: #ea4335; padding: 10px 12px; border-radius: 4px; line-height: 1; }
+    .btn-remove:hover { background: #d33426; }
+    .btn-remove-sale { background: #ea4335; font-size: 12px; padding: 4px 8px; }
+    
+    /* Блок итогов продажи: сумма и способ оплаты */
+    .sale-total-block { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #b4d2ff; display: flex; flex-wrap: wrap; align-items: center; gap: 15px; }
+    .sale-total-block input { max-width: 150px; font-weight: bold; }
+    .sale-total-block select { max-width: 165px; font-weight: bold; border: 1px solid #1a73e8; color: #1a73e8; }
+    
+    #status { margin-top: 15px; font-weight: bold; font-size: 16px; text-align: center; padding: 10px; border-radius: 4px; }
+
+    /* Модальное окно */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+    .modal-window { background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; text-align: center; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .modal-close-x { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #aaa; font-weight: bold; }
+    .modal-close-x:hover { color: #333; }
+    .modal-btn { background: #34a853; font-size: 16px; padding: 10px 25px; margin-top: 20px; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .modal-btn:hover { background: #2d8e47; }
+    
+    .form-disabled-final { pointer-events: none; opacity: 0.5; }
+    .currency-preview { font-size: 13px; color: #1557b0; font-weight: normal; margin-left: 5px; }
+  </style>
+</head>
+<body>
+
+  <!-- БЛОК 1: Авторизация -->
+  <div id="loginBox" class="box" style="max-width: 400px;">
+    <h2>Вход в систему</h2>
+    <div id="loginError" class="error"></div>
+    <input type="text" id="loginField" placeholder="Логин (Email)" required>
+    <input type="password" id="password" placeholder="Пароль" required>
+    <button style="width: 100%;" onclick="login()">Войти</button>
+  </div>
+
+  <!-- БЛОК 2: Главная форма отчета -->
+  <div id="reportBox" class="box hidden">
+    <div class="header-layout">
+      <div class="header-text">
+        <div class="shop-title">Точка продаж: <span id="shopName">...</span></div>
+        <div class="date-title" id="dateMessage">Отчет за ...</div>
+        <div class="user-title"><span id="userName">...</span></div>
+        
+        <div class="retoucher-block">
+          <label style="font-weight: bold; color: #555;">Выберите ретушера:</label>
+          <select id="retoucherSelect" onchange="autoSaveForm()"></select>
+        </div>
+      </div>
+      <div>
+        <button class="btn-submit-top" id="sendBtn" onclick="sendAllData()">Отправить отчет за день</button>
+      </div>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div id="mainFormContent">
+      <!-- БЛОК РАСХОДНЫХ МАТЕРИАЛОВ -->
+      <div class="materials-section">
+        <div class="materials-header" onclick="toggleMaterials()">
+          <span>📋 Списать расходные материалы</span>
+          <span id="materialsArrow">▼</span>
+        </div>
+        <div id="materialsBody" class="materials-body hidden">
+          <div id="materialsContainer"></div>
+          
+          <div class="action-link-container">
+            <button class="btn-plus-square" id="addMatBtn" onclick="addMaterialRow()">+</button>
+            <span>Добавить расходный материал</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Блок продаж -->
+      <div class="sales-section-title">Продажи</div>
+      <div id="salesContainer"></div>
+      
+      <div class="action-link-container" style="margin-top: 20px;">
+        <button class="btn-plus-square" id="addSaleBtn" onclick="addSaleBlock()">+</button>
+        <span style="color: #1a73e8;">Добавить продажу</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ШАБЛОН МОДАЛЬНОГО ОКНА -->
+  <div id="successModal" class="modal-overlay hidden">
+    <div class="modal-window">
+      <span class="modal-close-x" onclick="closeModal()">&times;</span>
+      <h2 id="modalTitle" style="color: #34a853; margin-bottom: 15px;">✓ Успешно</h2>
+      <p id="modalMessage" style="font-size: 16px; font-weight: bold; line-height: 1.4;"></p>
+      <button class="modal-btn" onclick="closeModal()">Ок</button>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var currentUser = "";
+    var currentShop = "";
+    var saleCounter = 0; 
+    var formattedDateString = "";
+    var globalBlockedState = false; 
+    
+    var availableProducts = [];
+    var availableRetouchers = [];
+    var availableMaterials = [];
+
+    // === АКТУАЛЬНАЯ ССЫЛКА НА ВАШ БЭКЕНД GOOGLE SCRIPTS ===
+    var GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzDhkerrmpDsGPvIxWROF9eZn4RomdU3PMsbqfWBLpkyS9Itjt3ETVClj9wVBedCYeE/exec";
+
+    window.onload = function() {
+      try {
+        var today = new Date();
+        var options = { year: 'numeric', month: 'long', day: 'numeric' };
+        formattedDateString = today.toLocaleDateString('ru-RU', options);
+        var dateDiv = document.getElementById('dateMessage');
+        if (dateDiv) { dateDiv.innerText = "Отчет за " + formattedDateString; }
+      } catch (e) {}
+    };
+
+    function callGoogleAPI(payload, successCallback, failureCallback) {
+      fetch(GOOGLE_WEB_APP_URL, {
+        method: "POST",
+        mode: "cors",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      })
+      .then(function(res) { 
+        if (!res.ok) throw new Error("Код ошибки сервера: " + res.status);
+        return res.json(); 
+      })
+      .then(successCallback)
+      .catch(failureCallback);
+    }
+
+    function initRetoucherSelect() {
+      var select = document.getElementById('retoucherSelect');
+      var optionsHtml = '<option value="">-- Не выбрано (необязательно) --</option>';
+      availableRetouchers.forEach(function(ret) {optionsHtml += '' + ret + '';
+});
+select.innerHTML = optionsHtml;
+}
+function login() {
+var loginVal = document.getElementById('loginField').value;
+var password = document.getElementById('password').value;
+var errorDiv = document.getElementById('loginError');
+if (!loginVal || !password) {
+errorDiv.innerText = "Пожалуйста, введите логин и пароль!";
+errorDiv.style.color = "#ea4335";
+return;
+}
+errorDiv.innerText = "Проверка данных...";
+errorDiv.style.color = "#1a73e8";
+callGoogleAPI(
+{ action: "login", login: loginVal, password: password },
+function(response) {
+if (response && response.success) {
+currentUser = response.userName;
+currentShop = response.shopName;
+document.getElementById('shopName').innerText = currentShop;
+document.getElementById('userName').innerText = currentUser;
+loadFormDropdownsAndContinue(response.alreadySent);
+} else {
+errorDiv.style.color = "#ea4335";
+errorDiv.innerText = response && response.message ? response.message : "Неверный логин или пароль!";
+}
+},
+function(err) {
+errorDiv.style.color = "#ea4335";
+errorDiv.innerText = "Ошибка соединения: " + err.toString();
+}
+);
+}
+function loadFormDropdownsAndContinue(alreadySent) {
+var errorDiv = document.getElementById('loginError');
+errorDiv.innerText = "Загрузка справочников товаров и материалов...";
+callGoogleAPI(
+{ action: "getInitialData" },
+function(dataRes) {
+if (dataRes && dataRes.success) {
+availableProducts = dataRes.products || [];
+availableRetouchers = dataRes.retouchers || [];
+availableMaterials = dataRes.materials || [];
+initRetoucherSelect();
+document.getElementById('loginBox').classList.add('hidden');
+document.getElementById('reportBox').classList.remove('hidden');
+if (alreadySent) {
+applyDayLockout();
+} else {
+if (!loadFormDraft()) addSaleBlock();
+}
+} else {
+errorDiv.style.color = "#ea4335";
+errorDiv.innerText = "Ошибка загрузки: " + (dataRes ? dataRes.message : "Ошибка");
+}
+},
+function(err) { errorDiv.innerText = "Ошибка сети: " + err.toString(); }
+);
+}
+function applyDayLockout() {
+globalBlockedState = true;
+var statusDiv = document.getElementById('status');
+if (statusDiv) {
+statusDiv.style.color = '#ea4335';
+statusDiv.style.background = '#fce8e6';
+statusDiv.innerText = "Отчет уже отправлен, обратитесь к администратору!";
+}
+document.getElementById('mainFormContent').classList.add('form-disabled-final');
+if (document.getElementById('retoucherSelect')) document.getElementById('retoucherSelect').disabled = true;
+if (document.getElementById('sendBtn')) {
+document.getElementById('sendBtn').disabled = true;
+document.getElementById('sendBtn').style.background = '#ccc';
+}
+document.querySelectorAll('.btn-plus-square').forEach(function(b) { b.disabled = true; });
+document.onclick = function(e) {
+if(document.getElementById('loginBox').classList.contains('hidden')) {
+alert("Отчет уже отправлен, обратитесь к администратору!");
+e.preventDefault();
+e.stopPropagation();
+return false;
+}
+};
+}
+function toggleMaterials() {
+if (globalBlockedState) return;
+var body = document.getElementById('materialsBody');
+var arrow = document.getElementById('materialsArrow');
+if (body.classList.contains('hidden')) {
+body.classList.remove('hidden');
+arrow.innerText = '▲';
+} else {
+body.classList.add('hidden');
+arrow.innerText = '▼';
+}
+}
+function addMaterialRow(savedValue, savedCount) {
+var val = savedValue || "";
+var cnt = savedCount || "1";
+var container = document.getElementById('materialsContainer');
+if (!container) return;
+var row = document.createElement('div');
+row.className = 'material-row';
+var optionsHtml = 'Выберите материал...';
+availableMaterials.forEach(function(mat) {
+var selected = mat === val ? ' selected' : '';
+optionsHtml += '<option value="' + mat + '"' + selected + '>' + mat + '';
+});
+row.innerHTML = '' + optionsHtml + '' +
+'' +
+'✕';
+container.appendChild(row);
+autoSaveForm();
+}
+function addSaleBlock(savedTotal, savedPayMethod) {
+var totalVal = savedTotal || "0";
+var payMethodVal = savedPayMethod || "";
+saleCounter++;
+var container = document.getElementById('salesContainer');
+if (!container) return saleCounter;
+var saleBlock = document.createElement('div');
+saleBlock.className = 'sale-block';
+saleBlock.id = 'saleBlock_' + saleCounter;
+saleBlock.setAttribute('data-sale-number', saleCounter);
+var removeBtnHtml = '';
+if (saleCounter > 1) {
+removeBtnHtml = 'Удалить продажу';
+}
+var optCash = payMethodVal === "Наличные" ? " selected" : "";
+var optCard = payMethodVal === "Безналичные" ? " selected" : "";
+saleBlock.innerHTML = '' +
+'Продажа №' + saleCounter + '' + removeBtnHtml +
+'' +
+'' +
+'' +
+'+' +
+'Добавить товар' +
+'' +
+'' +
+'Сумма продажи: руб. ' +
+'Способ оплаты: ' +
+'' +
+'<option value="" disabled ' + (!payMethodVal ? 'selected' : '') + '>-- Выберите --' +
+'<option value="Наличные"' + optCash + '>Наличные' +
+'<option value="Безналичные"' + optCard + '>Безналичные' +
+'' +
+'' +
+'';
+container.appendChild(saleBlock);
+addItemRow(saleCounter);
+var sumInput = saleBlock.querySelector('.sale-total-sum');
+if (sumInput && totalVal !== "0") formatCurrencyLabel(sumInput);
+return saleCounter;
+}
+function removeSaleBlock(id) {
+var block = document.getElementById('saleBlock_' + id);
+if (block) {
+block.remove();
+recalculateSaleNumbers();
+autoSaveForm();
+}
+}
+function recalculateSaleNumbers() {
+var blocks = document.querySelectorAll('.sale-block');
+saleCounter = 0;
+blocks.forEach(function(block) {
+saleCounter++;
+block.setAttribute('data-sale-number', saleCounter);
+block.querySelector('.display-number').innerText = saleCounter;
+});
+}
+function addItemRow(saleId, savedProduct, savedCount) {
+var prodVal = savedProduct || "";
+var countVal = savedCount || "1";
+var container = document.getElementById('itemsContainer_' + saleId);
+if (!container) return;
+var row = document.createElement('div');
+row.className = 'item-row';
+var optionsHtml = 'Выберите товар...';
+availableProducts.forEach(function(prod) {
+var selected = prod === prodVal ? ' selected' : '';
+optionsHtml += '<option value="' + prod + '"' + selected + '>' + prod + '';
+});
+row.innerHTML = '' + optionsHtml + '' +
+'' +
+'✕';
+container.appendChild(row);
+autoSaveForm();
+}
+function validatePositiveInteger(input) {
+input.value = input.value.replace(/[^0-9]/g, '');
+}
+function formatCurrencyLabel(input) {
+var val = input.value.trim();
+var preview = input.parentElement.querySelector('.currency-preview');
+if (!preview) return;
+if (!val || Number(val) < 0) { preview.innerText = ''; return; }
+preview.innerText = '(' + Number(val).toLocaleString('ru-RU') + ' руб.)';
+}
+function autoSaveForm() {
+if (globalBlockedState || !currentUser) return;
+var draft = { retoucher: document.getElementById('retoucherSelect').value, materials: [], sales: [] };
+var matRows = document.querySelectorAll('.material-row');
+matRows.forEach(function(row) {
+var sel = row.querySelector('.mat-select');
+var cnt = row.querySelector('.mat-count');
+if (sel && sel.value) draft.materials.push({ material: sel.value, count: cnt ? cnt.value : "1" });
+});
+var saleBlocks = document.querySelectorAll('.sale-block');
+saleBlocks.forEach(function(block) {
+var sumEl = block.querySelector('.sale-total-sum');
+var payEl = block.querySelector('.sale-pay-method');
+var saleData = { total: sumEl ? sumEl.value : "0", payMethod: payEl ? payEl.value : "", items: [] };
+var itemRows = block.querySelectorAll('.item-row');
+itemRows.forEach(function(row) {
+var prodSel = row.querySelector('.item-product');
+var prodCnt = row.querySelector('.item-count');
+if (prodSel && prodSel.value) saleData.items.push({ product: prodSel.value, count: prodCnt ? prodCnt.value : "1" });
+});
+draft.sales.push(saleData);
+});
+localStorage.setItem('report_draft_' + currentUser, JSON.stringify(draft));
+}
+function loadFormDraft() {
+var rawData = localStorage.getItem('report_draft_' + currentUser);
+if (!rawData) return false;
+try {
+var draft = JSON.parse(rawData);
+document.getElementById('retoucherSelect').value = draft.retoucher || "";
+if (draft.materials && draft.materials.length > 0) {
+document.getElementById('materialsBody').classList.remove('hidden');
+document.getElementById('materialsArrow').innerText = '▲';
+document.getElementById('materialsContainer').innerHTML = "";
+draft.materials.forEach(function(mat) { addMaterialRow(mat.material, mat.count); });
+}
+if (draft.sales && draft.sales.length > 0) {
+document.getElementById('salesContainer').innerHTML = "";
+saleCounter = 0;
+draft.sales.forEach(function(sale) {
+var currentId = addSaleBlock(sale.total, sale.payMethod);
+var block = document.getElementById('saleBlock_' + currentId);
+var itemsContainer = document.getElementById('itemsContainer_' + currentId);
+if (itemsContainer) itemsContainer.innerHTML = "";
+sale.items.forEach(function(item) { addItemRow(currentId, item.product, item.count); });
+var sumInput = block.querySelector('.sale-total-sum');
+if (sumInput) { sumInput.value = sale.total; formatCurrencyLabel(sumInput); }
+var paySelect = block.querySelector('.sale-pay-method');
+if (paySelect) paySelect.value = sale.payMethod;
+});
+return true;
+}
+} catch (e) {
+console.error("Ошибка восстановления черновика", e);
+clearFormDraft();
+}
+return false;
+}
+function clearFormDraft() {
+localStorage.removeItem('report_draft_' + currentUser);
+}
+function sendAllData() {
+if (globalBlockedState) {
+alert("Отчет уже отправлен, обратитесь к администратору!");
+return;
+}
+var sendBtn = document.getElementById('sendBtn');
+var statusDiv = document.getElementById('status');
+var retoucherVal = document.getElementById('retoucherSelect').value;
+statusDiv.innerHTML = "";
+statusDiv.style.color = "initial";
+statusDiv.style.background = "none";
+var matRows = document.querySelectorAll('.material-row');
+var materialsData = [];
+for (var m = 0; m < matRows.length; m++) {
+var material = matRows[m].querySelector('.mat-select').value;
+var count = matRows[m].querySelector('.mat-count').value.trim();
+if (!material) {
+statusDiv.style.color = '#ea4335';
+statusDiv.innerText = "Пожалуйста, выберите наименование во всех строках расходных материалов!";
+return;
+}
+if (!count || Number(count) <= 0) {
+statusDiv.style.color = '#ea4335';
+statusDiv.innerText = "Пожалуйста, укажите количество для всех добавленных расходных материалов!";
+return;
+}
+materialsData.push({ material: material, count: count });
+}
+var saleBlocks = document.querySelectorAll('.sale-block');
+if (saleBlocks.length === 0) {
+statusDiv.style.color = '#ea4335';
+statusDiv.innerText = "Добавьте хотя бы одну продажу!";
+return;
+}
+var reportData = [];
+for (var i = 0; i < saleBlocks.length; i++) {
+var block = saleBlocks[i];
+var saleNum = block.getAttribute('data-sale-number');
+var totalSum = block.querySelector('.sale-total-sum').value.trim();
+var payMethod = block.querySelector('.sale-pay-method').value;
+if (!totalSum || Number(totalSum) <= 0) {
+statusDiv.style.color = '#ea4335';
+statusDiv.innerText = "Не указана сумма продажи для продажи №" + saleNum;
+block.scrollIntoView({ behavior: 'smooth' });
+return;
+}
+if (!payMethod) {
+statusDiv.style.color = '#ea4335';
+statusDiv.innerText = "Не выбран способ оплаты для продажи №" + saleNum;
+block.querySelector('.sale-pay-method').focus();
+return;
+}
+var itemRows = block.querySelectorAll('.item-row');
+if (itemRows.length === 0) {
+statusDiv.style.color = '#ea4335';
+statusDiv.innerText = "В продаже №" + saleNum + " должен быть выбран хотя бы один товар!";
+return;
+}
+var items = [];
+for (var j = 0; j < itemRows.length; j++) {
+var product = itemRows[j].querySelector('.item-product').value;
+var count = itemRows[j].querySelector('.item-count').value.trim();
+if (!product) {
+statusDiv.style.color = '#ea4335';
+statusDiv.innerText = "Выберите товар в продаже №" + saleNum;
+return;
+}
+if (!count || Number(count) <= 0) {
+statusDiv.style.color = '#ea4335';
+statusDiv.innerText = "Заполните кол-во товара для продажи №" + saleNum;
+return;
+}
+items.push({ product: product, count: count });
+}
+reportData.push({ number: saleNum, total: totalSum, payMethod: payMethod, items: items });
+}
+statusDiv.style.color = '#333';
+statusDiv.style.background = '#fff3cd';
+statusDiv.innerText = "Сохранение общего отчета...";
+if (sendBtn) sendBtn.disabled = true;
+callGoogleAPI(
+{
+action: "saveReport",
+userName: currentUser,
+shopName: currentShop,
+retoucherName: retoucherVal,
+sales: reportData,
+materials: materialsData
+},
+function(response) {
+if (response && response.success && response.result === "success") {
+clearFormDraft();
+statusDiv.style.color = '#155724';
+statusDiv.style.background = '#d4edda';
+statusDiv.innerText = "Отчет успешно сохранен в Google Таблицах!";
+document.getElementById('modalMessage').innerText = "Отчет за " + formattedDateString + " успешно сохранен!";
+document.getElementById('successModal').classList.remove('hidden');
+document.getElementById('salesContainer').innerHTML = "";
+document.getElementById('materialsContainer').innerHTML = "";
+document.getElementById('retoucherSelect').value = "";
+saleCounter = 0;
+applyDayLockout();
+} else if (response && response.result === "already_sent_today") {
+alert("Отчет уже отправлен, обратитесь к администратору!");
+clearFormDraft();
+applyDayLockout();
+} else {
+statusDiv.style.color = '#ea4335';
+statusDiv.style.background = '#fce8e6';
+statusDiv.innerText = response && response.message ? response.message : "Неизвестная ошибка сервера";
+if (sendBtn) sendBtn.disabled = false;
+}
+},
+function(err) {
+if (sendBtn) sendBtn.disabled = false;
+statusDiv.style.color = '#ea4335';
+statusDiv.style.background = '#fce8e6';
+statusDiv.innerText = "Ошибка сети: " + err.toString();
+}
+);
+}
+function closeModal() {
+document.getElementById('successModal').classList.add('hidden');
+}
